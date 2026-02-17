@@ -3,11 +3,11 @@ package parijat.plugin;
 import charlie.card.Card;
 import charlie.shoe.Shoe;
 
+/**
+ * Create an instance of MyShoe02.
+ * A unique shoe to result in a 5 card Charlie if following standard play
+ */
 public class MyShoe02 extends Shoe {
-    /**
-     * Create an instance of MyShoe02.
-     * A unique shoe to result in a 5 card Charlie if following standard play
-     */
     public MyShoe02() {
         // Constructor calls init()
         super();
