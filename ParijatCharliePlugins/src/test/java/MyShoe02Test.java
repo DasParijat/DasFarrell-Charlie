@@ -4,6 +4,10 @@ import junit.framework.TestCase;
 import parijat.plugin.MyShoe02;
 
 
+/**
+ * Create an instance of MyShoe02Test.
+ * Unit tests MyShoe02 to ensure the hand is correctly implemented.
+ */
 public class MyShoe02Test extends TestCase {
     public void test() {
         // Instantiate a shoe
