@@ -11,6 +11,7 @@ package parijat.test.shoe;/*
  */
 import charlie.actor.Courier;
 import charlie.card.Card;
+import charlie.card.Hand;
 import charlie.card.Hid;
 import charlie.dealer.Seat;
 import charlie.plugin.IUi;
@@ -25,6 +26,10 @@ public class MyPerfectShoeTest extends Perfect implements IUi {
     Hid you;
 
     boolean myTurn = false; // Number 3
+
+    Hand myHand;
+    int dealerCardCount = 0;
+
     /**
      * Runs the test.
      */
@@ -68,6 +73,14 @@ public class MyPerfectShoeTest extends Perfect implements IUi {
      */
     @Override
     public void deal(Hid hid, Card card, int[] handValues) {
+        if (hid.getSeat() == Seat.YOU) {
+            if (myHand == null) myHand = new Hand(hid);
+            myHand.hit(card);
+        }
+        else if (hid.getSeat() == Seat.DEALER) {
+            dealerCardCount++;
+        }
+
         if (myTurn == true && hid.getSeat() == Seat.YOU) { // Number 5
             play(hid);
         }
@@ -100,6 +113,7 @@ public class MyPerfectShoeTest extends Perfect implements IUi {
     public void bust(Hid hid) {
         // Possible if You or Dealer breaks but it will be one or the other.
         info("BREAK: "+hid);
+        assert false;
     }
 
     /**
@@ -110,6 +124,7 @@ public class MyPerfectShoeTest extends Perfect implements IUi {
     public void win(Hid hid) {
         // Possible if You or Dealer wins, but it'll be one or ther other.
         info("WIN: "+hid);
+        assert false;
     }
 
     /**
@@ -120,6 +135,7 @@ public class MyPerfectShoeTest extends Perfect implements IUi {
     public void lose(Hid hid) {
         // Possible if You or Dealer loses but it will be one or the other.
         info("LOSE: "+hid);
+        assert false;
     }
 
     /**
@@ -130,6 +146,7 @@ public class MyPerfectShoeTest extends Perfect implements IUi {
     public void push(Hid hid) {
         // Possible if there's a push.
         info("PUSH: "+hid);
+        assert false;
     }
 
     /**
@@ -140,6 +157,7 @@ public class MyPerfectShoeTest extends Perfect implements IUi {
     public void blackjack(Hid hid) {
         // Possible if either You or Dealer has a blackjack.
         info("BLACKJACK: "+hid);
+        assert false;
     }
 
     /**
@@ -150,6 +168,13 @@ public class MyPerfectShoeTest extends Perfect implements IUi {
     public void charlie(Hid hid) {
         // Number 7
         assert hid.getSeat() == Seat.YOU;
+        assert myHand.size() == 5;
+        assert myHand.getValue() <= 21;
+
+        assert dealerCardCount == 2;
+        
+        assert hid.getAmt() == 10;
+        assert hid.getSideAmt() == 0;
     }
 
     /**
@@ -165,8 +190,10 @@ public class MyPerfectShoeTest extends Perfect implements IUi {
 
         for(Hid hid: hids) {
             buffer.append(hid).append(", ");
-            if(hid.getSeat() == Seat.YOU)
+            if(hid.getSeat() == Seat.YOU) {
                 this.you = hid;
+                this.myHand = new Hand(hid);
+            }
         }
         buffer.append(" shoe size: ").append(shoeSize);
         info(buffer.toString());
