@@ -28,3 +28,14 @@ replay_pid*
 
 *.lst
 *.out
+
+*/maven
+*/.m2
+
+# Maven local repositories anywhere in the repo
+.m2/
+**/.m2/
+.m2repo/
+
+
+*.DS_Store
