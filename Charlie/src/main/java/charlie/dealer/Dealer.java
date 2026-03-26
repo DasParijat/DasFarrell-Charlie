@@ -22,15 +22,6 @@
  */
 package charlie.dealer;
 
-import charlie.plugin.*;
-import charlie.card.Hand;
-import charlie.actor.House;
-import charlie.actor.RealPlayer;
-import charlie.card.Card;
-import charlie.card.HoleCard;
-import charlie.card.Hid;
-import charlie.shoe.ShoeFactory;
-import charlie.util.Constant;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,10 +29,22 @@ import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 
-import charlie.util.Play;
 import org.apache.log4j.Logger;
 
+import charlie.actor.House;
+import charlie.actor.RealPlayer;
+import charlie.card.Card;
+import charlie.card.Hand;
+import charlie.card.Hid;
+import charlie.card.HoleCard;
+import charlie.plugin.IBot;
+import charlie.plugin.IPlayer;
+import charlie.plugin.IShoe;
+import charlie.plugin.ISideBetRule;
+import charlie.shoe.ShoeFactory;
+import charlie.util.Constant;
 import static charlie.util.Constant.DEFAULT_SHOE;
+import charlie.util.Play;
 
 /**
  * This class implements the Blackjack dealer.
