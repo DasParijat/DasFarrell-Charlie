@@ -214,9 +214,15 @@ public class Dealer implements Serializable {
      */
     protected Card deal() {
         Card card = shoe.next();
-        
+        if (card == null) {
+            LOG.warn("shoe exhausted; reshuffling to deal a valid card");
+            shoe.shuffle();
+            shufflePending = false;
+            card = shoe.next();
+        }
+
         checkShoe();
-        
+
         return card;
     }
     
@@ -724,11 +730,24 @@ public class Dealer implements Serializable {
      * Tells everyone game over.
      */
     protected void wrapUp() { 
+        boolean penetrationShuffle = shufflePending;
         if(shufflePending) {
-            shoe.shuffle();
             shufflePending = false;
         }
-        
+
+        // With bots at the table, reshuffle after every game so the next round
+        // starts from a full shoe (short / test shoes otherwise return null from next()).
+        boolean hasBot = false;
+        for (IPlayer p : playerSequence) {
+            if (p instanceof IBot) {
+                hasBot = true;
+                break;
+            }
+        }
+        if (hasBot || penetrationShuffle) {
+            shoe.shuffle();
+        }
+
         for (IPlayer player: playerSequence)           
             player.endGame(shoe.size()); 
     }
