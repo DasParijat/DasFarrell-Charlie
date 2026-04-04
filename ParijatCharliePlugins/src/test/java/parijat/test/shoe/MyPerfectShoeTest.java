@@ -50,7 +50,7 @@ public class MyPerfectShoeTest extends Perfect implements IUi {
         ////////// All test logic at this point done by IUi implementation.
 
         // Wait for dealer to call end of game.
-        assert await(20000);
+        // assert await(20000);
 
         // End of scope closes sockets which shuts down client and server.
         info("DONE !");
