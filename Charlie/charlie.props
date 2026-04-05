@@ -6,8 +6,8 @@ charlie.client.courier -1:8001
 charlie.debug false
 charlie.advisor farrell.client.Advisor
 # charlie.shoe parijat.plugin.MyShoe02
-charlie.bot.huey charlie.server.bot.Huey
-charlie.bot.dewey charlie.server.bot.Dewey
+# charlie.bot.huey charlie.server.bot.Huey
+# charlie.bot.dewey charlie.server.bot.Dewey
 charlie.sidebet.rule charlie.sidebet.rule.SideBetRule
 charlie.sidebet.view charlie.sidebet.view.SideBetView
 charlie.shoe charlie.sidebet.test.Shoe

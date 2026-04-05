@@ -23,43 +23,67 @@
 
 package charlie.sidebet.view;
 
-import charlie.card.Hid;
-import charlie.plugin.ISideBetView;
-import charlie.view.AMoneyManager;
-
-import charlie.view.sprite.ChipButton;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics2D;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
+
 import org.apache.log4j.Logger;
+
+import charlie.audio.Effect;
+import charlie.audio.SoundFactory;
+import charlie.card.Hid;
+import charlie.plugin.ISideBetView;
+import charlie.view.AMoneyManager;
+import charlie.view.sprite.Chip;
+import charlie.view.sprite.ChipButton;
 
 /**
  * This class implements the side bet view
  * @author Ron Coleman, Ph.D.
  */
 public class SideBetView implements ISideBetView {
+    private enum Outcome { None, Win, Lose }
+
     private final Logger LOG = Logger.getLogger(SideBetView.class);
     
-    public final static int X = 400;
-    public final static int Y = 200;
-    public final static int DIAMETER = 50;
+    public static final int X = 400;
+    public static final int Y = 200;
+    public static final int DIAMETER = 50;
+    private static final int PLACE_X = X + DIAMETER / 2 + 10;
+    private static final int PLACE_Y = Y - DIAMETER / 4;
+    private static final int TEXT_X = PLACE_X + 90;
+    private static final int TEXT_Y = Y - 20;
+    private static final int OUTCOME_X = X + DIAMETER / 2 + 15;
+    private static final int OUTCOME_Y = Y + 8;
     
-    protected Font font = new Font("Arial", Font.BOLD, 18);
-    protected BasicStroke stroke = new BasicStroke(3);
+    private final Font font = new Font("Arial", Font.BOLD, 18);
+    private final Font infoFont = new Font("Arial", Font.BOLD, 16);
+    private final Font outcomeFont = new Font("Arial", Font.BOLD, 18);
+    private final Color infoColor = Color.YELLOW;
+    private final Color loseColorBg = new Color(250,58,5);
+    private final Color loseColorFg = Color.WHITE;
+    private final Color winColorFg = Color.BLACK;
+    private final Color winColorBg = new Color(116,255,4);
     
     // See http://docs.oracle.com/javase/tutorial/2d/geometry/strokeandfill.html
-    protected float dash1[] = {10.0f};
-    protected BasicStroke dashed
+    private final float dash1[] = {10.0f};
+    private final BasicStroke dashed
             = new BasicStroke(3.0f,
                     BasicStroke.CAP_BUTT,
                     BasicStroke.JOIN_MITER,
                     10.0f, dash1, 0.0f);   
 
-    protected List<ChipButton> buttons;
-    protected int amt = 0;
-    protected AMoneyManager moneyManager;
+    private List<ChipButton> buttons;
+    private final List<Chip> chips = new ArrayList<>();
+    private int amt = 0;
+    private AMoneyManager moneyManager;
+    private Outcome outcome = Outcome.None;
+    private final Random ran = new Random();
 
     public SideBetView() {
         LOG.info("side bet view constructed");
@@ -82,18 +106,32 @@ public class SideBetView implements ISideBetView {
      */
     @Override
     public void click(int x, int y) {
-        int oldAmt = amt;
-        
+        if(buttons == null)
+            return;
+
         // Test if any chip button has been pressed.
         for(ChipButton button: buttons) {
-            if(button.isPressed(x, y)) {
+            if(button.isReady() && button.isPressed(x, y)) {
                 amt += button.getAmt();
+
+                int n = chips.size();
+                int placeX = PLACE_X + n * button.getImage().getWidth(null) / 3 + ran.nextInt(21) - 10;
+                int placeY = PLACE_Y + ran.nextInt(11) - 5;
+
+                chips.add(new Chip(button.getImage(), placeX, placeY, button.getAmt()));
+                outcome = Outcome.None;
+                SoundFactory.play(Effect.CHIPS_IN);
+
                 LOG.info("A. side bet amount "+button.getAmt()+" updated new amt = "+amt);
-            } 
+                return;
+            }
         }
-        
-        if(oldAmt == amt) {
+
+        if(isAtStakePressed(x, y)) {
             amt = 0;
+            chips.clear();
+            outcome = Outcome.None;
+            SoundFactory.play(Effect.CHIPS_OUT);
             LOG.info("B. side bet amount cleared");
         }
     }
@@ -109,6 +147,8 @@ public class SideBetView implements ISideBetView {
         if(bet == 0)
             return;
 
+        outcome = bet > 0 ? Outcome.Win : Outcome.Lose;
+
         LOG.info("side bet outcome = "+bet);
         
         // Update the bankroll
@@ -122,6 +162,7 @@ public class SideBetView implements ISideBetView {
      */
     @Override
     public void starting() {
+        outcome = Outcome.None;
     }
 
     /**
@@ -158,6 +199,56 @@ public class SideBetView implements ISideBetView {
         // Draw the at-stake amount
         g.setFont(font);
         g.setColor(Color.WHITE);
-        g.drawString(""+amt, X-5, Y+5);
+        String text = "" + amt;
+        FontMetrics fm = g.getFontMetrics(font);
+        int textX = X - fm.charsWidth(text.toCharArray(), 0, text.length()) / 2;
+        int textY = Y + fm.getHeight() / 4;
+        g.drawString(text, textX, textY);
+
+        g.setFont(infoFont);
+        g.setColor(infoColor);
+        g.drawString("SUPER 7 pays 3:1", TEXT_X, TEXT_Y);
+        g.drawString("ROYAL MATCH pays 25:1", TEXT_X, TEXT_Y + 22);
+        g.drawString("EXACTLY 13 pays 1:1", TEXT_X, TEXT_Y + 44);
+
+        for(Chip chip: chips) {
+            chip.render(g);
+        }
+
+        renderOutcome(g);
+    }
+
+    private boolean isAtStakePressed(int x, int y) {
+        int left = X - DIAMETER / 2;
+        int top = Y - DIAMETER / 2;
+        return x > left && x < left + DIAMETER && y > top && y < top + DIAMETER;
+    }
+
+    private void renderOutcome(Graphics2D g) {
+        if(outcome == Outcome.None || chips.isEmpty())
+            return;
+
+        String text = outcome == Outcome.Win ? " WIN " : " LOSE ";
+        FontMetrics fm = g.getFontMetrics(outcomeFont);
+        int w = fm.charsWidth(text.toCharArray(), 0, text.length());
+        int h = fm.getHeight();
+
+        int x = OUTCOME_X;
+        int y = OUTCOME_Y;
+
+        if(outcome == Outcome.Win)
+            g.setColor(winColorBg);
+        else
+            g.setColor(loseColorBg);
+
+        g.fillRoundRect(x, y - h + 5, w, h, 5, 5);
+
+        if(outcome == Outcome.Win)
+            g.setColor(winColorFg);
+        else
+            g.setColor(loseColorFg);
+
+        g.setFont(outcomeFont);
+        g.drawString(text, x, y);
     }
 }
