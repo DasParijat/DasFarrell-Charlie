@@ -37,6 +37,15 @@ public class Shoe extends charlie.shoe.Shoe {
     public void init() {
         cards.clear();
 
+        // Test case #1: Push, no side bet, player 7+9+3 vs dealer K+9
+        cards.add(new Card(7,Card.Suit.HEARTS));
+        cards.add(new Card(Card.KING,Card.Suit.CLUBS));
+
+        cards.add(new Card(9,Card.Suit.SPADES));
+        cards.add(new Card(9,Card.Suit.DIAMONDS));
+
+        cards.add(new Card(3,Card.Suit.CLUBS));
+
         // Test case #2
         cards.add(new Card(7,Card.Suit.HEARTS));
         cards.add(new Card(Card.KING,Card.Suit.CLUBS));
@@ -54,6 +63,65 @@ public class Shoe extends charlie.shoe.Shoe {
         cards.add(new Card(8,Card.Suit.DIAMONDS));
 
         cards.add(new Card(3,Card.Suit.CLUBS));
+
+        // Test case #4: Lose main, win side bet, player 7+9+3 vs dealer K+10
+        cards.add(new Card(7,Card.Suit.DIAMONDS));
+        cards.add(new Card(Card.KING,Card.Suit.SPADES));
+
+        cards.add(new Card(9,Card.Suit.CLUBS));
+        cards.add(new Card(10,Card.Suit.HEARTS));
+
+        cards.add(new Card(3,Card.Suit.SPADES));
+
+        // Test case #5: Lose main, lose side bet, player 9+7+3 vs dealer K+10
+        cards.add(new Card(9,Card.Suit.DIAMONDS));
+        cards.add(new Card(Card.KING,Card.Suit.HEARTS));
+
+        cards.add(new Card(7,Card.Suit.CLUBS));
+        cards.add(new Card(10,Card.Suit.SPADES));
+
+        cards.add(new Card(3,Card.Suit.HEARTS));
+
+        // Test case #6: Win main, win side bet, suited K+Q vs dealer K+8
+        cards.add(new Card(Card.KING,Card.Suit.HEARTS));
+        cards.add(new Card(Card.KING,Card.Suit.CLUBS));
+
+        cards.add(new Card(Card.QUEEN,Card.Suit.HEARTS));
+        cards.add(new Card(8,Card.Suit.DIAMONDS));
+
+        // Test case #7: Win main, lose side bet, unsuited K+Q vs dealer K+8
+        cards.add(new Card(Card.KING,Card.Suit.HEARTS));
+        cards.add(new Card(Card.KING,Card.Suit.CLUBS));
+
+        cards.add(new Card(Card.QUEEN,Card.Suit.SPADES));
+        cards.add(new Card(8,Card.Suit.DIAMONDS));
+
+        // Test case #8: Win main, win side bet, player 8+5 vs dealer K+6+K
+        cards.add(new Card(8,Card.Suit.HEARTS));
+        cards.add(new Card(Card.KING,Card.Suit.CLUBS));
+
+        cards.add(new Card(5,Card.Suit.SPADES));
+        cards.add(new Card(6,Card.Suit.DIAMONDS));
+
+        cards.add(new Card(Card.KING,Card.Suit.HEARTS));
+
+        // Test case #9: Win main, win side bet, player 7+6 vs dealer K+6+K
+        cards.add(new Card(7,Card.Suit.CLUBS));
+        cards.add(new Card(Card.KING,Card.Suit.SPADES));
+
+        cards.add(new Card(6,Card.Suit.HEARTS));
+        cards.add(new Card(6,Card.Suit.CLUBS));
+
+        cards.add(new Card(Card.KING,Card.Suit.DIAMONDS));
+
+        // Test case #10: Win main, lose side bet, player 6+8 vs dealer K+6+K
+        cards.add(new Card(6,Card.Suit.SPADES));
+        cards.add(new Card(Card.KING,Card.Suit.HEARTS));
+
+        cards.add(new Card(8,Card.Suit.CLUBS));
+        cards.add(new Card(6,Card.Suit.DIAMONDS));
+
+        cards.add(new Card(Card.KING,Card.Suit.CLUBS));
     }
 
     /**
