@@ -8,180 +8,222 @@ import charlie.dealer.Seat;
 import charlie.plugin.IUi;
 import charlie.test.framework.Perfect;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
- * This class is the minimalist perfect  test case.
+ * End-to-end test for the Lab 8/9 side-bet shoe (10 scripted games).
+ * Sequences main and side bets and play actions to match {@code charlie.sidebet.test.Shoe}.
  * @author Ron.Coleman
  */
 public class PerfectSideBet extends Perfect implements IUi {
-    Hid you;
 
-    boolean myTurn = false; // Number 3
+    private static final int MAIN_BET = 25;
+    private static final int SIDE_BET_AFTER_FIRST = 10;
+    private static final int NUM_GAMES = 10;
 
-    Hand myHand;
-    int dealerCardCount = 0;
+    /**
+     * Expected bankroll after each game completes (Lab 9 appendix, Table 1).
+     */
+    private static final double[] EXPECTED_BANKROLL_AFTER_GAME = {
+        1000.0, 1055.0, 1070.0, 1075.0, 1040.0,
+        1315.0, 1330.0, 1365.0, 1420.0, 1435.0
+    };
+
+    static {
+        System.setProperty("charlie.props", "../Charlie/charlie.props");
+    }
+
+    private Hid you;
+    private Hand myHand;
+    private int gameNumber = -1;
+    private double bankroll = 1000.0;
+    private volatile CountDownLatch gameEndLatch;
+
+    /**
+     * After a hit, the stock {@code Dealer} does not always send a second {@code play()};
+     * we stand from {@link #deal} once the draw card is applied, and use this flag so
+     * a second {@code stay} is not sent if a second {@code play} does arrive.
+     */
+    private boolean hitSequenceStandIssued;
 
     /**
      * Runs the test.
      */
-
-    // Gemini 3 fix
-    static {
-        // Point relatively to the sibling Charlie folder
-        System.setProperty("charlie.props", "../Charlie/charlie.props");
-
-        // Note: if your file is actually in the resources folder, use this instead:
-        // System.setProperty("charlie.props", "../Charlie/src/main/resources/charlie.props");
-    }
-
     public void test() throws Exception {
-        // Starts the server and logs in using only defaults
-        System.setProperty("charlie.shoe","parijat.plugin.MyShoe02"); // Number 4
         go(this);
 
-        // Now that the game server is ready, to start a game, we just need to
-        // send in a bet which in the GUI is like pressing DEAL.
-        final int BET_AMT = 5;
-        final int SIDE_BET_AMT = 0;
+        for (int g = 0; g < NUM_GAMES; g++) {
+            gameEndLatch = new CountDownLatch(1);
+            int sideAmt = (g == 0) ? 0 : SIDE_BET_AFTER_FIRST;
+            bet(MAIN_BET, sideAmt);
+            info("game loop " + g + " bet main=" + MAIN_BET + " side=" + sideAmt);
+            assertTrue("timed out waiting for game " + g,
+                    gameEndLatch.await(20, TimeUnit.SECONDS));
+        }
 
-        bet(BET_AMT,SIDE_BET_AMT);
-        info("bet amt: "+BET_AMT+", side bet: "+SIDE_BET_AMT);
-
-        ////////// All test logic at this point done by IUi implementation.
-
-        // Wait for dealer to call end of game.
-        // assert await(20000);
-
-        // End of scope closes sockets which shuts down client and server.
-        info("DONE !");
+        assertEquals(1435.0, bankroll, 1e-6);
+        info("DONE");
     }
 
-    /**
-     * This method gets invoked whenever a card is dealt.
-     * @param hid Target hand
-     * @param card Card
-     * @param handValues Hand value and soft value
-     */
     @Override
     public void deal(Hid hid, Card card, int[] handValues) {
-        if (hid.getSeat() == Seat.YOU) {
-            if (myHand == null) myHand = new Hand(hid);
+        if (hid.getSeat() == Seat.YOU && card != null) {
             myHand.hit(card);
+            if (gameNumber >= 0 && gameNumber <= 4
+                    && myHand.size() == 3
+                    && !myHand.isBroke()
+                    && !hitSequenceStandIssued) {
+                hitSequenceStandIssued = true;
+                stay(you);
+            }
         }
-        else if (hid.getSeat() == Seat.DEALER) {
-            dealerCardCount++;
-        }
-
-        if (myTurn == true && hid.getSeat() == Seat.YOU) { // Number 5
-            play(hid);
-        }
-        info("DEAL: "+hid+" card: "+card+" hand values: "+handValues[0]+", "+handValues[1]);
+        info("DEAL: " + hid + " card: " + card + " hand values: "
+                + handValues[0] + ", " + handValues[1]);
     }
 
-    /**
-     * This method gets invoked only once whenever the turn changes.
-     * @param hid New hand's turn
-     */
     @Override
     public void play(Hid hid) {
-        // When it's our turn, stand.
-        // Number 6
-        if (hid.getSeat() == Seat.YOU) {
-            myTurn = true;
-            hit(you);
-            // stay(you);
+        if (hid.getSeat() != Seat.YOU) {
+            return;
         }
-        else {
-            myTurn = false;
+        if (gameNumber >= 0 && gameNumber <= 4) {
+            if (myHand.size() == 2) {
+                hit(hid);
+            } else if (!hitSequenceStandIssued) {
+                stay(hid);
+            }
+        } else {
+            stay(hid);
         }
     }
 
-    /**
-     * This method gets invoked if a hand breaks.
-     * @param hid Target hand
-     */
     @Override
     public void bust(Hid hid) {
-        // Possible if You or Dealer breaks but it will be one or the other.
-        info("BREAK: "+hid);
-        assert false;
+        info("BREAK: " + hid);
+        if (hid.getSeat() == Seat.YOU) {
+            fail("unexpected player bust");
+        }
     }
 
-    /**
-     * This method gets invoked for a winning hand.
-     * @param hid Target hand
-     */
     @Override
     public void win(Hid hid) {
-        // Possible if You or Dealer wins, but it'll be one or ther other.
-        info("WIN: "+hid);
-        assert false;
+        info("WIN: " + hid);
+        if (hid.getSeat() != Seat.YOU) {
+            return;
+        }
+        assertEquals(Seat.YOU, hid.getSeat());
+        assertEquals(you, hid);
+        switch (gameNumber) {
+            case 1:
+                assertEquals(25.0, hid.getAmt(), 1e-9);
+                assertEquals(30.0, hid.getSideAmt(), 1e-9);
+                bankroll += hid.getAmt() + hid.getSideAmt();
+                break;
+            case 2:
+                assertEquals(25.0, hid.getAmt(), 1e-9);
+                assertEquals(-10.0, hid.getSideAmt(), 1e-9);
+                bankroll += hid.getAmt() + hid.getSideAmt();
+                break;
+            case 5:
+                assertEquals(25.0, hid.getAmt(), 1e-9);
+                assertEquals(250.0, hid.getSideAmt(), 1e-9);
+                bankroll += hid.getAmt() + hid.getSideAmt();
+                break;
+            case 6:
+                assertEquals(25.0, hid.getAmt(), 1e-9);
+                assertEquals(-10.0, hid.getSideAmt(), 1e-9);
+                bankroll += hid.getAmt() + hid.getSideAmt();
+                break;
+            case 7:
+                assertEquals(25.0, hid.getAmt(), 1e-9);
+                assertEquals(10.0, hid.getSideAmt(), 1e-9);
+                bankroll += hid.getAmt() + hid.getSideAmt();
+                break;
+            case 8:
+                assertEquals(25.0, hid.getAmt(), 1e-9);
+                assertEquals(30.0, hid.getSideAmt(), 1e-9);
+                bankroll += hid.getAmt() + hid.getSideAmt();
+                break;
+            case 9:
+                assertEquals(25.0, hid.getAmt(), 1e-9);
+                assertEquals(-10.0, hid.getSideAmt(), 1e-9);
+                bankroll += hid.getAmt() + hid.getSideAmt();
+                break;
+            default:
+                fail("unexpected win in game " + gameNumber);
+        }
     }
 
-    /**
-     * This method gets invoked for a losing hand.
-     * @param hid Target hand
-     */
     @Override
     public void lose(Hid hid) {
-        // Possible if You or Dealer loses but it will be one or the other.
-        info("LOSE: "+hid);
-        assert false;
+        info("LOSE: " + hid);
+        if (hid.getSeat() != Seat.YOU) {
+            return;
+        }
+        assertEquals(Seat.YOU, hid.getSeat());
+        assertEquals(you, hid);
+        switch (gameNumber) {
+            case 3:
+                assertEquals(-25.0, hid.getAmt(), 1e-9);
+                assertEquals(30.0, hid.getSideAmt(), 1e-9);
+                bankroll += hid.getAmt() + hid.getSideAmt();
+                break;
+            case 4:
+                assertEquals(-25.0, hid.getAmt(), 1e-9);
+                assertEquals(-10.0, hid.getSideAmt(), 1e-9);
+                bankroll += hid.getAmt() + hid.getSideAmt();
+                break;
+            default:
+                fail("unexpected lose in game " + gameNumber);
+        }
     }
 
-    /**
-     * This method gets invoke for a hand that pushes, ie, has same value as dealer's hand.
-     * @param hid Target hand
-     */
     @Override
     public void push(Hid hid) {
-        // Possible if there's a push.
-        info("PUSH: "+hid);
-        assert false;
+        info("PUSH: " + hid);
+        if (hid.getSeat() != Seat.YOU) {
+            return;
+        }
+        assertEquals(Seat.YOU, hid.getSeat());
+        assertEquals(you, hid);
+        if (gameNumber == 0) {
+            assertEquals(0.0, hid.getAmt(), 1e-9);
+            assertEquals(0.0, hid.getSideAmt(), 1e-9);
+            bankroll += hid.getAmt() + hid.getSideAmt();
+        } else {
+            fail("unexpected push in game " + gameNumber);
+        }
     }
 
-    /**
-     * This method gets invoked for a (natural) Blackjack hand, Ace+K, Ace+Q, etc.
-     * @param hid Target hand
-     */
     @Override
     public void blackjack(Hid hid) {
-        // Possible if either You or Dealer has a blackjack.
-        info("BLACKJACK: "+hid);
-        assert false;
+        info("BLACKJACK: " + hid);
+        if (hid.getSeat() != Seat.YOU) {
+            return;
+        }
+        fail("unexpected blackjack");
     }
 
-    /**
-     * This method gets invoked for a 5-card Charlie hand.
-     * @param hid Target hand
-     */
     @Override
     public void charlie(Hid hid) {
-        // Number 7
-        assert hid.getSeat() == Seat.YOU;
-        assert myHand.size() == 5;
-        assert myHand.getValue() <= 21;
-
-        assert dealerCardCount == 2;
-
-        assert hid.getAmt() == 10;
-        assert hid.getSideAmt() == 0;
+        info("CHARLIE: " + hid);
+        if (hid.getSeat() != Seat.YOU) {
+            return;
+        }
+        fail("unexpected charlie");
     }
 
-    /**
-     * This method get invoked at the start of a game before any cards are dealt.
-     * @param hids Hands in the game
-     * @param shoeSize Current shoe size, ie, original shoe less cards dealt
-     */
     @Override
     public void startGame(List<Hid> hids, int shoeSize) {
         StringBuilder buffer = new StringBuilder();
-
         buffer.append("game STARTING: ");
-
-        for(Hid hid: hids) {
+        gameNumber++;
+        myHand = null;
+        hitSequenceStandIssued = false;
+        for (Hid hid : hids) {
             buffer.append(hid).append(", ");
-            if(hid.getSeat() == Seat.YOU) {
+            if (hid.getSeat() == Seat.YOU) {
                 this.you = hid;
                 this.myHand = new Hand(hid);
             }
@@ -190,55 +232,30 @@ public class PerfectSideBet extends Perfect implements IUi {
         info(buffer.toString());
     }
 
-    /**
-     * This method gets invoked after a game ends and before the start of a new game.
-     * @param shoeSize Endind shoe size
-     */
     @Override
     public void endGame(int shoeSize) {
-        signal();
-
-        info("ENDING game shoe size: "+shoeSize);
+        assertEquals("bankroll after game " + gameNumber,
+                EXPECTED_BANKROLL_AFTER_GAME[gameNumber], bankroll, 1e-6);
+        gameEndLatch.countDown();
+        info("ENDING game " + gameNumber + " shoe size: " + shoeSize);
     }
 
-    /**
-     * This method gets invoked when the burn card appears, it indicates a
-     * re-shuffle is coming after the current game ends.
-     */
     @Override
     public void shuffling() {
         info("SHUFFLING");
     }
 
-    /**
-     * This method sets the courier.
-     * It's not used here because the base test case instantiates a courier for us.
-     * @param courier Courier
-     */
     @Override
     public void setCourier(Courier courier) {
     }
 
-    /**
-     * This method gets invoked when a player requests a split.
-     * For instance, a 4+4 split results in two hands, each with two cards,
-     * 4+x and 4+y where "x" and "y" are hits to each hand which the dealer
-     * automatically performs, respectively.
-     * @param newHid New hand split from the original.
-     * @param origHid Original hand.
-     */
     @Override
     public void split(Hid newHid, Hid origHid) {
-        // Not possible for this test case.
-        assert false;
+        fail("split not expected");
     }
 
-    /**
-     * Handles insurance requests.
-     */
     @Override
     public void insure() {
-        // Insurance not supported.
-        assert false;
+        fail("insurance not supported");
     }
 }
