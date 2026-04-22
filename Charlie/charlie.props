@@ -4,10 +4,12 @@ charlie.server.realplayer 127.0.0.1:8501
 charlie.client.courier -1:8001
 #charlie.sounds off
 charlie.debug false
+charlie.dealer parijat.server.MyDealer
 charlie.advisor farrell.client.Advisor
 # charlie.shoe parijat.plugin.MyShoe02
+charlie.shoe parijat.plugin.Lab11Shoe02
+# charlie.shoe parijat.plugin.Lab11Shoe01
 # charlie.bot.huey charlie.server.bot.Huey
 # charlie.bot.dewey charlie.server.bot.Dewey
 charlie.sidebet.rule charlie.sidebet.rule.SideBetRule
 charlie.sidebet.view charlie.sidebet.view.SideBetView
-charlie.shoe charlie.sidebet.test.Shoe

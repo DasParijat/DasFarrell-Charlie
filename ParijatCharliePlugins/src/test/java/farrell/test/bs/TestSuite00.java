@@ -24,7 +24,6 @@ import farrell.test.bs.section4.Test_55_6_00;
 import farrell.test.bs.section4.Test_88_6_00;
 import farrell.test.bs.section4.Test_99_7_00;
 import farrell.test.bs.section4.Test_AA_9_00;
-
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         Test_12_2_00.class,
